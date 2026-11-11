@@ -1,3 +1,11 @@
+
+##   _____ . _____    |                        ______  ._____
+##   |     | |    \   |       /\     |\    |  /        |
+##   |____ | | __ /   |      /  \    | \   | |         |
+##   |     | |   \    |     /____\   |  \  | |         |_____
+##   |     | |    \   |    /      \  |   \ | |         |
+##   |     | |     \  |__ /        \ |    \|  \______  |_____
+##   github.com/made-in-abyss
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score
 import yfinance as yf
