@@ -10,3 +10,4 @@ I am using XGBoost for this, datas fed from yfinance and the desired output is 1
 *pip install yfinance*<br>
 <br><br>
 You can probably modify everything here.
+If you can, pls also debug for me.

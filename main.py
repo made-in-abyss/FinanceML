@@ -30,4 +30,4 @@ elif t == 2:
         print("please type correct name, or else train it.")
         exit(0)
 while(True):
-    token(False,True,False,False,model)
+    token(False,True,False,model)

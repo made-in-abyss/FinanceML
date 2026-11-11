@@ -6,16 +6,20 @@
 ##   |     | |    \   |    /      \  |   \ | |         |
 ##   |     | |     \  |__ /        \ |    \|  \______  |_____
 ##   github.com/made-in-abyss
-##   THIS IS THE TRAINING SECTION, DONT TOUCH ANYTHING PLZ
+##   THIS IS THE TRAINING SECTION, ONLY CONFIGURE IF YOU'RE SMART
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score
 from run import token
 import yfinance as yf
 import pandas as pd
 model = XGBClassifier(
-    n_estimators=50, 
-    max_depth=3, 
-    learning_rate=0.05,
+    n_estimators=100,
+    learning_rate=0.03,
+    max_depth=4,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    min_child_weight=5,
+    reg_lambda=2.0,
     random_state=42,
     eval_metric="logloss"
 )
@@ -37,10 +41,9 @@ PRETRAIN_40 = [
     "JPM", "BAC", "GS", "MS", "BLK", "SCHW", "C", "AXP", "SPG", "AMT",
     "BRK-B", "V", "MA", "LLY", "TSM", "ASML", "HD", "UNP", "ABT", "LIN"
 ]
-booster = None
 def InitModel(name):
     for i in PRETRAIN_50:
-        token(i,False,True,booster,model)
+        token(i,False,True,model)
     print("Finished training the model")
     print(f"Now named: {name}")
     model.save_model(f"{name}.json")

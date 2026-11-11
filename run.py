@@ -22,7 +22,7 @@ def fetch(ticker):
     except Exception:
         print(Exception)
         return
-def token(pretick,output_mode,train, booster, model):
+def token(pretick,output_mode,train, model):
     dt = fetch(pretick)
     if dt is None or dt.empty or len(dt) < 50:
         print(f"skipped {pretick}")
@@ -48,8 +48,8 @@ def token(pretick,output_mode,train, booster, model):
     rs = gain / (loss+1e-9)
     dt["rsi"] = 100 - (100 /(1 + rs))
     dt["future_return_5d"] = dt["Close"].shift(-5) /dt["Close"] - 1.0
-    dt["target"] =(dt["future_return_5d"] >0).astype(int)
-    dt_clean = dt.dropna()
+    dt_clean = dt.dropna().copy()
+    dt_clean["target"] =(dt_clean["future_return_5d"] >0).astype(int)
     features = ["median_5d","median_10d","volatility_5d","volatility_10d","rsi",
                 "dist_ema_9","dist_ema_21","dist_ema_55","dist_ema_100",
                 "ema_cross_fast","ema_cross_slow"]
@@ -60,16 +60,19 @@ def token(pretick,output_mode,train, booster, model):
     y_train = y.iloc[:split_point]
     X_test = X.iloc[split_point:]
     y_test = y.iloc[split_point:]
-    if (train == True and booster != False):
+    if (train == True):
+        try:
+            booster = model.get_booster()
+        except Exception:
+            booster = None 
         model.fit(X_train, y_train, xgb_model=booster)
-        booster = model.get_booster()
-        model.n_estimators += 50
+        model.n_estimators += 100
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test,y_pred)
     if (output_mode == True):
         print(f"accuracy: {accuracy*100}%")
         counts = pd.Series(y_pred).value_counts().to_dict()
         print(f"breakdown: {counts.get(1, 0)} UP vs {counts.get(0, 0)} DOWN")
-        print("care:")
+        print("importance:")
         for feat,imp in zip(features, model.feature_importances_):
             print(f"{feat:15s}:{imp * 100}%")
