@@ -11,9 +11,8 @@ from sklearn.metrics import accuracy_score
 import yfinance as yf
 import pandas as pd
 
-def fetch(ticker):
-    if ticker == False:
-        ticker = str(input("input your ticker: "))
+def fetch():
+    ticker = str(input("input your ticker: "))
     try:
         df = yf.download(ticker, period="max", interval="1d")
         if isinstance(df.columns, pd.MultiIndex):
@@ -22,14 +21,25 @@ def fetch(ticker):
     except Exception:
         print(Exception)
         return
-def token(pretick,output_mode,train, model):
-    dt = fetch(pretick)
+def token(output_mode,train, model, dt):
+    if dt is None:
+        dt = fetch()
     if dt is None or dt.empty or len(dt) < 50:
-        print(f"skipped {pretick}")
+        print(f"skipped")
         return
     daily = dt["Close"].pct_change(1)
+    volume = dt["Volume"]
     dt["median_5d"] = daily.rolling(5).median()
     dt["median_10d"] = daily.rolling(10).median()
+    ma20 = dt["Close"].rolling(20).mean()
+    std20 = dt["Close"].rolling(20).std()
+    dt["bb_width"] = (4.0*std20)/ma20
+    volumemean_5d = volume.rolling(5).mean()
+    volumemean_10d= volume.rolling(10).mean()
+    volumemean_20d= volume.rolling(20).mean()
+    dt["rvol_1d"] = (volume/volumemean_20d)-1.0
+    dt["rvol_5d"] = (volumemean_5d/volumemean_20d)-1.0
+    dt["rvol_10d"] = (volumemean_10d /volumemean_20d)-1.0
     dt["volatility_5d"] = daily.rolling(5).std()
     dt["volatility_10d"] = daily.rolling(10).std()
     ema_9   = dt["Close"].ewm(span=9, adjust=False).mean()
@@ -51,8 +61,8 @@ def token(pretick,output_mode,train, model):
     dt_clean = dt.dropna().copy()
     dt_clean["target"] =(dt_clean["future_return_5d"] >0).astype(int)
     features = ["median_5d","median_10d","volatility_5d","volatility_10d","rsi",
-                "dist_ema_9","dist_ema_21","dist_ema_55","dist_ema_100",
-                "ema_cross_fast","ema_cross_slow"]
+            "dist_ema_9","dist_ema_21","dist_ema_55","dist_ema_100","rvol_5d","rvol_1d","rvol_10d",
+            "ema_cross_fast","ema_cross_slow","bb_width"]
     X = dt_clean[features]
     y = dt_clean["target"]
     split_point = int(len(dt_clean)*0.8)
@@ -66,10 +76,11 @@ def token(pretick,output_mode,train, model):
         except Exception:
             booster = None 
         model.fit(X_train, y_train, xgb_model=booster)
-        model.n_estimators += 100
-    y_pred = model.predict(X_test)
-    accuracy = accuracy_score(y_test,y_pred)
+        model.n_estimators += 15
+        print("trained successfully")
     if (output_mode == True):
+        y_pred = model.predict(X_test)
+        accuracy = accuracy_score(y_test,y_pred)
         print(f"accuracy: {accuracy*100}%")
         counts = pd.Series(y_pred).value_counts().to_dict()
         print(f"breakdown: {counts.get(1, 0)} UP vs {counts.get(0, 0)} DOWN")
